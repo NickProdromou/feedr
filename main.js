@@ -31,16 +31,31 @@ article:[{
 (function() {
 'use strict'
 
+//Fetch Mashable api
    fetch('https://crossorigin.me/http://mashable.com/stories.json')
      .then((response,err) => {
        return response.json()
      }).then((result) => {
-       console.log(result.hot[0])
-       console.log(result.hot[0].id)
-       console.log(result.hot[0].title)
+       var convertArray = Object.keys(result.hot)
+       convertArray.forEach(function(key){
+         var articleObject = {}
+         articleObject.image = result.hot[key].image;
+         articleObject.name = result.hot[key].display_title;
+         articleObject.category = result.hot[key].channel;
+         articleObject.rating = result.hot[key].shares.total;
+         articleObject.snippet = result.hot[key].excerpt;
+         state.articleFeed.push(articleObject)
+       })
     }).catch((err)=>{
       console.log("you made a mistake")
     })
+
+    // fetch('https://crossorigin.me/http://sidebar.io/api')
+    //   .then((response,err)=> {
+    //     console.log(response)
+    //   }).catch((err)=>{
+    //     "something went wrong"
+    //   })
 
 
   var container = document.querySelector('#container')
@@ -50,8 +65,11 @@ article:[{
                 {name:"source 2",url:"#"},
                 {name:"source 3",url:"#"}
               ],
-    currentSource: "source 1"
+    currentSource: "source 1",
+    articleFeed: []
   }
+
+
 console.log(state.sources)
 
   function renderLoading(data, into) {
@@ -109,6 +127,7 @@ console.log(state.sources)
 
   setTimeout(()=>{
     renderHeader(container,state);
+    console.log(state.articleFeed)
   },3000)
 
 //  renderPopup(state,container)
