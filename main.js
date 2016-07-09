@@ -18,22 +18,28 @@ var container = document.querySelector('#container') // store container in a var
 //fetch functions
 var fetchMashable = () => {
   state.currentSource = "Mashable";
+  state.articleFeed =[]
+  renderLoading(state,container)
   renderHeader(headerContainer,state); //render the header into separate container
-  renderLoading(state, container) //render the loading spinner on page load.
    fetch('https://crossorigin.me/http://mashable.com/stories.json')
      .then((response,err) => {
        return response.json()
        state.articleFeed =[]
      }).then((result) => {
        var convertArray = Object.keys(result.hot)
+       var itemIndex = 0;
+       console.log(result.hot)
        convertArray.forEach(function(key){
          var articleObject = {}
+         articleObject.index = itemIndex;
+         articleObject.link = result.hot[key].link;
          articleObject.image = result.hot[key].image;
          articleObject.name = result.hot[key].display_title;
          articleObject.category = result.hot[key].channel;
          articleObject.rating = result.hot[key].shares.total;
          articleObject.snippet = result.hot[key].excerpt;
          state.articleFeed.push(articleObject)
+         itemIndex ++;
        })
        var arrayOfArticles = Object.keys(state.articleFeed)
        //console.log(arrayOfArticles)
@@ -55,15 +61,21 @@ var fetchReddit = () =>{
         .then((responseAsJson)=>{
           state.articleFeed = []
           var convertArray = Object.keys(responseAsJson.data.children)
+          var itemIndex = 0;
+          console.log(responseAsJson.data.children[0])
           convertArray.forEach(function(key){
             var articleObject = {}
+            articleObject.link = "http://reddit.com" + responseAsJson.data.children[key].data.permalink;
+            articleObject.index = itemIndex;
             articleObject.image = responseAsJson.data.children[key].data.url;
             articleObject.rating = responseAsJson.data.children[key].data.score;
             articleObject.category = responseAsJson.data.children[key].data.subreddit;
             articleObject.name = responseAsJson.data.children[key].data.title;
             state.articleFeed.push(articleObject)
+            itemIndex ++;
           })
           renderArticleFeed(state.articleFeed,container);
+          console.log(state.articleFeed)
         })
       }).catch((err)=>{
         //console.log(err)
@@ -83,13 +95,19 @@ var fetchBehance = () => {
           state.articleFeed = []
           console.log(behanceObject)
           var convertArray = Object.keys(behanceObject.projects)
+          var itemIndex = 0;
+          console.log(behanceObject)
           convertArray.forEach(function(key){
             var articleObject = {}
+            articleObject.link = behanceObject.projects[key].url;
+            articleObject.index = itemIndex;
             articleObject.image = behanceObject.projects[key].covers.original;
             articleObject.rating = behanceObject.projects[key].stats.views;
             articleObject.category = behanceObject.projects[key].fields[0]
             articleObject.name = behanceObject.projects[key].name;
+            articleObject.snippet = behanceObject.projects[key].fields.join();
             state.articleFeed.push(articleObject)
+            itemIndex ++
           })
           renderArticleFeed(state.articleFeed,container);
         })
@@ -132,21 +150,22 @@ function renderNavItems(item){
   return `<li id="${item.name}"><a href="${item.url}">${item.name}</a></li>`
 }
 
-function renderPopup(data,into){
+function renderPopup(data,into,index){
   into.innerHTML = `  <div id="pop-up">
       <a href="#" class="close-pop-up">X</a>
       <div class="wrapper">
-        <h1>Article title here</h1>
+        <h1>${data.articleFeed[index].name}</h1>
+        <img src = "${data.articleFeed[index].image}"></img>
         <p>
-        Article description/content here.
+        ${data.articleFeed[index].snippet}
         </p>
-        <a href="#" class="pop-up-action" target="_blank">Read more from source</a>
+        <a href="${data.articleFeed[index].link}" class="pop-up-action" target="_blank">Read more from source</a>
       </div>
     </div>`
 }
 
 function renderArticles(item){
-  return `<article class="article">
+  return `<article class="article" id="${item.index}" >
     <section class="featured-image">
       <img src="${item.image}" alt="" />
     </section>
@@ -169,13 +188,13 @@ function renderArticleFeed(data,into) {
     </section>`
 }
 
-//calling functions
 fetchMashable()
 
 //event listener
 delegate('body', 'click', 'li', (event) => {
-  console.log(event.delegateTarget.id)
-  state.articleFeed = [];
+  console.log(state.articleFeed)
+  console.log(event)
+  console.log(event.delegateTarget)
   if (event.delegateTarget.id === "Reddit") {
     fetchReddit();
   } else if (event.delegateTarget.id === "Behance") {
@@ -184,5 +203,22 @@ delegate('body', 'click', 'li', (event) => {
     fetchMashable();
   }
 })
+
+delegate('body', 'click', 'article', (event) =>{
+  var index = event.delegateTarget.id;
+  console.log(event.delegateTarget.id)
+  renderPopup(state,container,index)
+  console.log(event.delegateTarget)
+})
+
+delegate ('body','click','a', (event) => {
+  if (event.delegateTarget.classList.contains("close-pop-up")) {
+    renderArticleFeed(state,container)
+  }
+})
+
+if (document.querySelector("img").error) {
+  console.log("images are broken")
+}
 
 })()
