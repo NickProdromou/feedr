@@ -11,7 +11,7 @@ var state = { //The Model in the MVC
   articleFeed: []
 }
 
-
+var body = document.querySelector('body');
 var headerContainer = document.querySelector('#header-container') // store header container in a variable
 var container = document.querySelector('#container') // store container in a variable
 
@@ -42,11 +42,9 @@ var fetchMashable = () => {
          itemIndex ++;
        })
        var arrayOfArticles = Object.keys(state.articleFeed)
-       //console.log(arrayOfArticles)
        renderArticleFeed(state.articleFeed,container);
     }).catch((err)=>{
-      console.log(err)
-      //console.log("you made a mistake")
+      renderError(container,state.currentSource);
     })
 }
 
@@ -62,23 +60,22 @@ var fetchReddit = () =>{
           state.articleFeed = []
           var convertArray = Object.keys(responseAsJson.data.children)
           var itemIndex = 0;
-          console.log(responseAsJson.data.children[0])
           convertArray.forEach(function(key){
             var articleObject = {}
-            articleObject.link = "http://reddit.com" + responseAsJson.data.children[key].data.permalink;
             articleObject.index = itemIndex;
+            articleObject.link = "http://reddit.com" + responseAsJson.data.children[key].data.permalink;
             articleObject.image = responseAsJson.data.children[key].data.url;
             articleObject.rating = responseAsJson.data.children[key].data.score;
             articleObject.category = responseAsJson.data.children[key].data.subreddit;
             articleObject.name = responseAsJson.data.children[key].data.title;
+            articleObject.snippet = responseAsJson.data.children[key].data.subreddit;
             state.articleFeed.push(articleObject)
             itemIndex ++;
           })
           renderArticleFeed(state.articleFeed,container);
-          console.log(state.articleFeed)
         })
       }).catch((err)=>{
-        //console.log(err)
+        renderError(container,state.currentSource);
       })
 }
 
@@ -93,29 +90,28 @@ var fetchBehance = () => {
         })
         .then((behanceObject)=>{
           state.articleFeed = []
-          console.log(behanceObject)
           var convertArray = Object.keys(behanceObject.projects)
           var itemIndex = 0;
-          console.log(behanceObject)
           convertArray.forEach(function(key){
             var articleObject = {}
-            articleObject.link = behanceObject.projects[key].url;
             articleObject.index = itemIndex;
+            articleObject.link = behanceObject.projects[key].url;
             articleObject.image = behanceObject.projects[key].covers.original;
             articleObject.rating = behanceObject.projects[key].stats.views;
             articleObject.category = behanceObject.projects[key].fields[0]
             articleObject.name = behanceObject.projects[key].name;
-            articleObject.snippet = behanceObject.projects[key].fields.join();
+            articleObject.snippet = behanceObject.projects[key].fields.join(", ");
             state.articleFeed.push(articleObject)
             itemIndex ++
           })
           renderArticleFeed(state.articleFeed,container);
         })
         .catch((err)=>{
-          console.log(err)
+          renderError(container,state.currentSource);
         })
 }
 
+///Render functions
 
 function renderLoading(data, into) {
   into.innerHTML = `<div id="pop-up" class="loader"></div>`
@@ -125,12 +121,8 @@ function renderHeader(into,state){
   into.innerHTML = `
   <header>
   <section class="wrapper">
-    <a href="#"><h1>Feedr</h1></a>
+    <a href="#"><h1 id ="logo">Feedr</h1></a>
     <nav>
-      <section id="search">
-        <input type="text" name="name" value="">
-        <div id="search-icon"><img src="images/search.png" alt="" /></div>
-      </section>
       <ul>
         <li><a href="#">Reading from: ${state.currentSource} <span></span></a>
         <ul>
@@ -150,12 +142,14 @@ function renderNavItems(item){
   return `<li id="${item.name}"><a href="${item.url}">${item.name}</a></li>`
 }
 
+
 function renderPopup(data,into,index){
-  into.innerHTML = `  <div id="pop-up">
+  into.innerHTML = `
+    <div id="pop-up">
       <a href="#" class="close-pop-up">X</a>
       <div class="wrapper">
         <h1>${data.articleFeed[index].name}</h1>
-        <img src = "${data.articleFeed[index].image}"></img>
+        <img src = "${data.articleFeed[index].image}" onerror="this.src='http://orig02.deviantart.net/cd44/f/2016/152/2/d/placeholder_3_by_sketchymouse-da4ny84.png'"></img>
         <p>
         ${data.articleFeed[index].snippet}
         </p>
@@ -164,10 +158,25 @@ function renderPopup(data,into,index){
     </div>`
 }
 
+function renderError(into,name){
+  into.innerHTML = `  <div class="error-dialogue">
+        <p><span>Error!</span> <br> Could not load feed for ${name}</p>
+        </div>
+        <div class="wrapper">
+        <h2>You can try the following:</h2>
+        <ul>
+          <li>Refresh the page</li>
+          <li>Come back later</li>
+          <li>Select another feed from the dropdown options.</li>
+        </ul>
+        </div>`
+}
+
+
 function renderArticles(item){
   return `<article class="article" id="${item.index}" >
     <section class="featured-image">
-      <img src="${item.image}" alt="" />
+      <img src="${item.image}" onerror="this.src='http://orig02.deviantart.net/cd44/f/2016/152/2/d/placeholder_3_by_sketchymouse-da4ny84.png'" alt="" />
     </section>
     <section class="article-content">
       <a href="#"><h3>${item.name}</h3></a>
@@ -188,6 +197,7 @@ function renderArticleFeed(data,into) {
     </section>`
 }
 
+//on page load
 fetchMashable()
 
 //event listener
@@ -206,9 +216,7 @@ delegate('body', 'click', 'li', (event) => {
 
 delegate('body', 'click', 'article', (event) =>{
   var index = event.delegateTarget.id;
-  console.log(event.delegateTarget.id)
   renderPopup(state,container,index)
-  console.log(event.delegateTarget)
 })
 
 delegate ('body','click','a', (event) => {
@@ -217,8 +225,23 @@ delegate ('body','click','a', (event) => {
   }
 })
 
-if (document.querySelector("img").error) {
-  console.log("images are broken")
-}
+delegate ('body','click','h1',(event)=>{
+  if (event.delegateTarget.id === "logo") {
+  fetchMashable()
+  }
+
+})
 
 })()
+
+
+
+
+/*
+
+<section id="search">
+  <input type="text" name="name" value="">
+  <div id="search-icon"><img src="images/search.png" alt="" /></div>
+</section>
+
+*/
